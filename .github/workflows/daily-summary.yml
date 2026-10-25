@@ -65,18 +65,23 @@ jobs:
         run: |
           python -c "
           import smtplib
+          from email.mime.text import MIMEText
           import os
 
           try:
               print('正在连接服务器...')
               server = smtplib.SMTP_SSL('smtp.qq.com', 465)
               server.login('angusw@foxmail.com', os.environ['EMAIL_PASSWORD'])
-              print('登录成功，正在发送纯英文测试...')
+              print('登录成功，正在发送标准测试...')
               
-              msg = 'Subject: Above SMTP Test\r\n\r\nThis is a test email from Github Actions.'
-             
-              receiver = 'anguswym@outlook.com'
-              server.sendmail('angusw@foxmail.com', [receiver], msg)
+              # 1. 生成标准格式的邮件正文
+              msg = MIMEText('This is a test email from Github Actions.', 'plain', 'utf-8')
+              msg['Subject'] = 'Above SMTP Test'
+              msg['From'] = 'angusw@foxmail.com'
+              msg['To'] = 'anguswym@outlook.com'
+              
+              # 2. 发送
+              server.sendmail('angusw@foxmail.com', ['anguswym@outlook.com'], msg.as_string())
               print('✅ 测试完毕！没有报错！')
               server.quit()
           except Exception as e:
