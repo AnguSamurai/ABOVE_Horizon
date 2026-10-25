@@ -24,10 +24,11 @@
     "model": "deepseek-chat",
     "api_key_env": "DEEPSEEK_API_KEY"
   },
-  "email": {
+    "email": {
     "enabled": true,
     "smtp_server": "smtp.qq.com",
     "smtp_port": 465,
+    "imap_server": "imap.qq.com",
     "email_address": "angusw@foxmail.com",
     "password_env": "EMAIL_PASSWORD",
     "recipient": "angusw@foxmail.com"
