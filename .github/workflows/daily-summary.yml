@@ -58,7 +58,7 @@ jobs:
           commit_message: "📝 Daily Summary: ${{ env.DATE }}"
           publish_branch: gh-pages
           enable_jekyll: true
-          
+
       - name: Direct SMTP Test
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -73,11 +73,10 @@ jobs:
               server.login('angusw@foxmail.com', os.environ['EMAIL_PASSWORD'])
               print('登录成功，正在发送纯英文测试...')
               
-              # 最原始的纯英文拼装，绕开所有 MIMEText 编码陷阱
-              msg = 'Subject: Above SMTP Test\r\n\r\nThis is a test email from Github Actions. If you receive this, the channel is CLEAR.'
-              
-              # 记得把下面的邮箱改成你的 Outlook 邮箱
-              server.sendmail('angusw@foxmail.com', ['你的Outlook邮箱@outlook.com'], msg)
+              msg = 'Subject: Above SMTP Test\r\n\r\nThis is a test email from Github Actions.'
+             
+              receiver = 'anguswym@outlook.com'
+              server.sendmail('angusw@foxmail.com', [receiver], msg)
               print('✅ 测试完毕！没有报错！')
               server.quit()
           except Exception as e:
