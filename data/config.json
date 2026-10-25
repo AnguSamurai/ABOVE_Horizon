@@ -1,21 +1,27 @@
 {
   "sources": {
     "rss": [
-      {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/world", "category": "国际"},
       {"name": "NYT", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "category": "国际"},
       {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml", "category": "国际"},
       {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "国际"},
-      {"name": "Politico", "url": "https://rss.politico.com/politics-news.xml", "category": "国际"},
       {"name": "BBC", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "国际"},
       {"name": "The Guardian", "url": "https://www.theguardian.com/international/rss", "category": "国际"},
+      {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "国际"},
+      {"name": "Washington Post (Mirror)", "url": "https://feedx.net/rss/washingtonpost.xml", "category": "国际"},
+
+      {"name": "新华网-时政", "url": "http://www.xinhuanet.com/politics/news_politics.xml", "category": "国内"},
+      {"name": "36氪", "url": "https://36kr.com/feed-newsflash", "category": "国内"},
+      {"name": "少数派", "url": "https://sspai.com/feed", "category": "国内"},
+      {"name": "爱范儿", "url": "https://www.ifanr.com/feed", "category": "国内"},
+      {"name": "澎湃新闻", "url": "https://rsshub.rssforever.com/thepaper/featured", "category": "国内"},
+      {"name": "南方周末", "url": "https://plink.anyfeeder.com/infzm/2", "category": "国内"},
+      {"name": "联合早报", "url": "https://rsshub.rssforever.com/zaobao/realtime/china", "category": "国内"},
 
       {"name": "OpenAI Blog", "url": "https://openai.com/news/rss.xml", "category": "AI领域"},
       {"name": "DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml", "category": "AI领域"},
       {"name": "Google AI Blog", "url": "https://blog.research.google/feeds/posts/default?alt=rss", "category": "AI领域"},
       {"name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "category": "AI领域"},
-      {"name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "category": "AI领域"},
-      {"name": "MIT Tech Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "category": "AI领域"},
-      {"name": "arXiv cs.AI", "url": "https://rss.arxiv.org/rss/cs.AI", "category": "AI领域"}
+      {"name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "category": "AI领域"}
     ]
   },
   "ai": {
@@ -24,13 +30,13 @@
     "api_key_env": "DEEPSEEK_API_KEY"
   },
   "email": {
-    "enabled": true,
+    "enabled": false,
     "smtp_server": "smtp.qq.com",
     "smtp_port": 465,
     "imap_server": "imap.qq.com",
-    "email_address": "angusw@foxmail.com",
+    "email_address": "你的邮箱@foxmail.com",
     "password_env": "EMAIL_PASSWORD",
-    "recipient": "anguswym@outlook.com"
+    "recipient": "你的邮箱@outlook.com"
   },
   "webhook": {
     "enabled": false
