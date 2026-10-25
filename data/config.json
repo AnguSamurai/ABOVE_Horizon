@@ -1,0 +1,35 @@
+{
+  "sources": {
+    "rss": [
+      {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/world", "category": "国际"},
+      {"name": "NYT", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "category": "国际"},
+      {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml", "category": "国际"},
+      {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "国际"},
+      {"name": "Politico", "url": "https://www.politico.com/rss", "category": "国际"},
+      {"name": "BBC", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "国际"},
+      {"name": "The Guardian", "url": "https://www.theguardian.com/rss", "category": "国际"},
+      {"name": "人民网", "url": "http://www.people.com.cn/rss/ywkx.xml", "category": "国内"},
+      {"name": "新华网-时政", "url": "http://www.xinhuanet.com/politics/news_politics.xml", "category": "国内"},
+      {"name": "新华网-国际", "url": "http://www.xinhuanet.com/world/news_world.xml", "category": "国内"},
+      {"name": "新华网-财经", "url": "http://www.xinhuanet.com/fortune/news_fortune.xml", "category": "国内"},
+      {"name": "新华网-法制", "url": "http://www.xinhuanet.com/legal/news_legal.xml", "category": "国内"},
+      {"name": "凤凰网-大陆", "url": "http://news.ifeng.com/rss/news/mainland/index.xml", "category": "国内"},
+      {"name": "凤凰网-台湾", "url": "http://news.ifeng.com/rss/news/taiwan/index.xml", "category": "国内"},
+      {"name": "凤凰网-国际", "url": "http://news.ifeng.com/rss/news/world/index.xml", "category": "国内"},
+      {"name": "凤凰网-评论", "url": "http://news.ifeng.com/opinion/rss/index.xml", "category": "国内"}
+    ]
+  },
+  "ai": {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "api_key_env": "DEEPSEEK_API_KEY"
+  },
+  "email": {
+    "enabled": true,
+    "smtp_server": "smtp.qq.com",
+    "smtp_port": 465,
+    "email_address": "angusw@foxmail.com",
+    "password_env": "EMAIL_PASSWORD",
+    "recipient": "angusw@foxmail.com"
+  }
+}
