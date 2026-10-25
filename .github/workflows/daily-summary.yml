@@ -65,24 +65,21 @@ jobs:
         run: |
           python -c "
           import smtplib
-          from email.mime.text import MIMEText
-          from email.header import Header
           import os
 
-          msg = MIMEText('这是一封来自 Github Actions 的纯文本测试邮件。', 'plain', 'utf-8')
-          msg['Subject'] = Header('Above 测试邮件', 'utf-8')
-          msg['From'] = 'angusw@foxmail.com'
-          # 请把下面的替换成你刚才填的 Outlook 邮箱！
-          msg['To'] = '你的Outlook邮箱@outlook.com' 
-
           try:
-              print('正在连接 SMTP 服务器...')
+              print('正在连接服务器...')
               server = smtplib.SMTP_SSL('smtp.qq.com', 465)
               server.login('angusw@foxmail.com', os.environ['EMAIL_PASSWORD'])
-              print('登录成功，正在发送...')
-              server.sendmail('angusw@foxmail.com', ['你的Outlook邮箱@outlook.com'], msg.as_string())
-              print('✅ 测试邮件发送完毕！')
+              print('登录成功，正在发送纯英文测试...')
+              
+              # 最原始的纯英文拼装，绕开所有 MIMEText 编码陷阱
+              msg = 'Subject: Above SMTP Test\r\n\r\nThis is a test email from Github Actions. If you receive this, the channel is CLEAR.'
+              
+              # 记得把下面的邮箱改成你的 Outlook 邮箱
+              server.sendmail('angusw@foxmail.com', ['你的Outlook邮箱@outlook.com'], msg)
+              print('✅ 测试完毕！没有报错！')
               server.quit()
           except Exception as e:
-              print('❌ 报错了！详情：', e)
+              print('❌ 失败：', e)
           "
