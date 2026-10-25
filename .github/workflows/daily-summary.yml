@@ -42,7 +42,6 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           LWN_KEY: ${{ secrets.LWN_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           # HORIZON_WEBHOOK_URL: ${{ secrets.HORIZON_WEBHOOK_URL }}
         run: uv run horizon --hours 1
 
@@ -59,31 +58,91 @@ jobs:
           publish_branch: gh-pages
           enable_jekyll: true
 
-      - name: Direct SMTP Test
+      - name: Send Above Briefing
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: |
           python -c "
-          import smtplib
+          import smtplib, os, glob, json, re
           from email.mime.text import MIMEText
-          import os
+          from email.header import Header
+
+          # 1. 读取配置，获取“新闻源名称 -> 板块分类”的映射
+          with open('data/config.json', 'r', encoding='utf-8') as f:
+              config = json.load(f)
+          source_to_cat = {src['name']: src.get('category', '综合') for src in config['sources']['rss']}
+
+          # 2. 找到刚刚生成的最新简报 Markdown 文件
+          files = glob.glob('data/summaries/horizon-*-en.md')
+          if not files:
+              print('❌ 没有找到生成的简报文件！')
+              exit(1)
+          latest_file = max(files, key=os.path.getctime)
+          with open(latest_file, 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          # 3. 解析 Markdown，按板块归类提取 标题 + 首句
+          categorized_news = {}
+          blocks = re.split(r'\n(?=##+ )', content)
+          
+          for block in blocks:
+              lines = block.strip().split('\n')
+              if not lines: continue
+              
+              title = lines[0].lstrip('#').strip()
+              if not title or 'Horizon' in title: continue
+                  
+              source = ''
+              for src_name in source_to_cat.keys():
+                  if src_name in block:
+                      source = src_name
+                      break
+              
+              category = source_to_cat.get(source, '国际')
+              
+              summary = ''
+              for line in lines[1:]:
+                  line = line.strip()
+                  if line and not line.startswith('Source') and not line.startswith('['):
+                      summary = line[:120] + '...'
+                      break
+              
+              if summary:
+                  if category not in categorized_news:
+                      categorized_news[category] = []
+                  if len(categorized_news[category]) < 2: # 每个板块取2条
+                      categorized_news[category].append((title, summary))
+
+          # 4. 生成 HTML 邮件正文
+          today = latest_file.split('horizon-')[1][:10]
+          web_link = f'https://angusamurai.github.io/ABOVE_Horizon/{today}-summary-en.html'
+          
+          html_content = f'<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">'
+          html_content += f'<h2 style=\"border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">🌊 Above Daily Digest</h2>'
+          
+          for cat, news_list in categorized_news.items():
+              html_content += f'<h3 style=\"color: #2ea44f; margin-top: 20px;\">📍 {cat}</h3>'
+              html_content += '<ul style=\"padding-left: 20px;\">'
+              for title, summary in news_list:
+                  html_content += f'<li style=\"margin-bottom: 15px;\"><strong>{title}</strong><br><span style=\"color: #666; font-size: 14px;\">{summary}</span></li>'
+              html_content += '</ul>'
+          
+          html_content += f'<div style=\"text-align: center; margin: 30px 0;\">'
+          html_content += f'<a href=\"{web_link}\" style=\"background-color: #2ea44f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;\">👉 阅读完整双语网页版</a>'
+          html_content += f'</div></div>'
+
+          # 5. 发送邮件
+          msg = MIMEText(html_content, 'html', 'utf-8')
+          msg['Subject'] = Header(f'[{today}] Above Daily Digest', 'utf-8')
+          msg['From'] = 'angusw@foxmail.com'
+          msg['To'] = 'anguswym@outlook.com'
 
           try:
-              print('正在连接服务器...')
               server = smtplib.SMTP_SSL('smtp.qq.com', 465)
               server.login('angusw@foxmail.com', os.environ['EMAIL_PASSWORD'])
-              print('登录成功，正在发送标准测试...')
-              
-              # 1. 生成标准格式的邮件正文
-              msg = MIMEText('This is a test email from Github Actions.', 'plain', 'utf-8')
-              msg['Subject'] = 'Above SMTP Test'
-              msg['From'] = 'angusw@foxmail.com'
-              msg['To'] = 'anguswym@outlook.com'
-              
-              # 2. 发送
               server.sendmail('angusw@foxmail.com', ['anguswym@outlook.com'], msg.as_string())
-              print('✅ 测试完毕！没有报错！')
+              print('✅ 按板块分类的极简简报发送成功！')
               server.quit()
           except Exception as e:
-              print('❌ 失败：', e)
+              print('❌ 发送失败：', e)
           "
