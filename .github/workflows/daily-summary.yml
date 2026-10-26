@@ -114,8 +114,8 @@ jobs:
                       categorized_news[category].append((title, summary))
 
           # 4. 生成 HTML 邮件正文
-          today = latest_file.split('horizon-')[1][:10]
-          web_link = f'https://angusamurai.github.io/ABOVE_Horizon/{today.replace("-", "/")}/summary-en.html'
+          date_path = today.replace("-", "/")
+          web_link = f'https://angusamurai.github.io/ABOVE_Horizon/{date_path}/summary-en.html'
           
           html_content = f'<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">'
           html_content += f'<h2 style=\"border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">🌊 Above Daily Digest</h2>'
