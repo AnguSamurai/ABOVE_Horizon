@@ -67,14 +67,24 @@ jobs:
           with open('data/config.json', 'r', encoding='utf-8') as f:
               config = json.load(f)
           source_to_cat = {src['name']: src.get('category', '综合') for src in config['sources']['rss']}
-
+          
           files = glob.glob('data/summaries/horizon-*-en.md')
           if not files:
-              print('❌ 没有找到生成的简报文件！')
-              exit(1)
-          latest_file = max(files, key=os.path.getctime)
-          with open(latest_file, 'r', encoding='utf-8') as f:
-              content = f.read()
+              print('⚠️ 未找到真实简报文件，正在使用【测试假数据】生成邮件...')
+              # 伪造一段 Markdown 格式的假新闻
+              content = '''
+              ## 假新闻测试标题一
+              Source: 测试媒体
+              这是一条用来测试排版和网页链接的假新闻摘要，不消耗任何Token。
+
+              ## 假新闻测试标题二
+              Source: 测试媒体
+              这是第二条测试新闻，用来确保邮件能够顺利发出。
+              '''
+          else:
+              latest_file = max(files, key=os.path.getctime)
+              with open(latest_file, 'r', encoding='utf-8') as f:
+                  content = f.read()
 
           categorized_news = {}
           blocks = re.split(r'\n(?=##+ )', content)
