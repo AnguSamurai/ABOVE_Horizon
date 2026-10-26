@@ -2,9 +2,8 @@ name: Daily Horizon Summary
 
 on:
   schedule:
-    # GitHub scheduled workflows use UTC. 20:00 UTC is 04:00 Asia/Shanghai;
-    # this intentionally runs early to offset the observed schedule delay.
-    - cron: '0 23 * * *'
+    # 北京时间早上 8:15 运行 (UTC 00:15)，预留时间确保 9:00 前送达
+    - cron: '15 0 * * *'
   workflow_dispatch:      # Allow manual trigger
 
 jobs:
@@ -12,10 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Needed to commit changes
+    
+    # 👇 魔法开关：全局锁定北京时间
+    env:
+      TZ: Asia/Shanghai
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,19 +33,10 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      # - name: Prepare GitHub Actions config
-        # run: cp data/config.github.json data/config.json
-
+      # 👇 测试期间封印抓取功能，不消耗 Token
       # - name: Run Horizon
       #   env:
-      #     # Map secrets to environment variables expected by config.json
-      #     # Modify these based on your data/config.github.json provider settings
-      #     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      #     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      #     GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-      #     LWN_KEY: ${{ secrets.LWN_KEY }}
       #     DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      #     # HORIZON_WEBHOOK_URL: ${{ secrets.HORIZON_WEBHOOK_URL }}
       #   run: uv run horizon --hours 1
 
       - name: Set current date as environment variable
@@ -53,7 +47,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          keep_files: true  # Keep existing summaries on gh-pages branch
+          keep_files: true
           commit_message: "📝 Daily Summary: ${{ env.DATE }}"
           publish_branch: gh-pages
           enable_jekyll: true
@@ -61,19 +55,19 @@ jobs:
       - name: Send Above Briefing
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          TZ: Asia/Shanghai
         run: |
           python -c "
-          import smtplib, os, glob, json, re
+          import smtplib, os, glob, json, re, datetime
           from email.mime.text import MIMEText
           from email.header import Header
 
-          # 1. 读取配置，获取“新闻源名称 -> 板块分类”的映射
+          # 👇 强制获取北京时间
+          today = datetime.datetime.now().strftime('%Y-%m-%d')
+
           with open('data/config.json', 'r', encoding='utf-8') as f:
               config = json.load(f)
           source_to_cat = {src['name']: src.get('category', '综合') for src in config['sources']['rss']}
 
-          # 2. 找到刚刚生成的最新简报 Markdown 文件
           files = glob.glob('data/summaries/horizon-*-en.md')
           if not files:
               print('❌ 没有找到生成的简报文件！')
@@ -82,7 +76,6 @@ jobs:
           with open(latest_file, 'r', encoding='utf-8') as f:
               content = f.read()
 
-          # 3. 解析 Markdown，按板块归类提取 标题 + 首句
           categorized_news = {}
           blocks = re.split(r'\n(?=##+ )', content)
           
@@ -111,11 +104,11 @@ jobs:
               if summary:
                   if category not in categorized_news:
                       categorized_news[category] = []
-                  if len(categorized_news[category]) < 2: # 每个板块取2条
+                  if len(categorized_news[category]) < 2:
                       categorized_news[category].append((title, summary))
 
-          # 4. 生成 HTML 邮件正文
-          date_path = today.replace("-", "/")
+          # 生成纯北京时间的网页路径
+          date_path = today.replace('-', '/')
           web_link = f'https://angusamurai.github.io/ABOVE_Horizon/{date_path}/summary-en.html'
           
           html_content = f'<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">'
@@ -132,7 +125,6 @@ jobs:
           html_content += f'<a href=\"{web_link}\" style=\"background-color: #2ea44f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;\">👉 阅读完整双语网页版</a>'
           html_content += f'</div></div>'
 
-          # 5. 发送邮件
           msg = MIMEText(html_content, 'html', 'utf-8')
           msg['Subject'] = Header(f'[{today}] Above Daily Digest', 'utf-8')
           msg['From'] = 'angusw@foxmail.com'
