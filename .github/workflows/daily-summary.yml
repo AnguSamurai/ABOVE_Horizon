@@ -61,6 +61,7 @@ jobs:
       - name: Send Above Briefing
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          TZ: Asia/Shanghai
         run: |
           python -c "
           import smtplib, os, glob, json, re
