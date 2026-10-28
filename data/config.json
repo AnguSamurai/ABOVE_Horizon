@@ -33,7 +33,7 @@
     "provider": "deepseek",
     "model": "deepseek-chat",
     "api_key_env": "DEEPSEEK_API_KEY",
-    "concurrency": 5,
+    "analysis_concurrency": 5,
     "enrichment": {
       "enabled": false
     }
