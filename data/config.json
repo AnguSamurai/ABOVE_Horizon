@@ -2,24 +2,29 @@
   "sources": {
     "rss": [
       {"name": "NYT", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", "category": "国际"},
-      {"name": "WSJ", "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml", "category": "国际"},
+      {"name": "WSJ", "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews", "category": "国际"},
       {"name": "Financial Times", "url": "https://www.ft.com/?format=rss", "category": "国际"},
       {"name": "BBC", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "国际"},
       {"name": "The Guardian", "url": "https://www.theguardian.com/international/rss", "category": "国际"},
       {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "国际"},
-      {"name": "Washington Post (Mirror)", "url": "https://feedx.net/rss/washingtonpost.xml", "category": "国际"},
+      {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/world", "category": "国际"},
+      {"name": "Hacker News", "url": "https://news.ycombinator.com/rss", "category": "国际"},
 
       {"name": "新华网-时政", "url": "http://www.xinhuanet.com/politics/news_politics.xml", "category": "国内"},
-      {"name": "36氪", "url": "https://36kr.com/feed-newsflash", "category": "国内"},
-      {"name": "少数派", "url": "https://sspai.com/feed", "category": "国内"},
-      {"name": "爱范儿", "url": "https://www.ifanr.com/feed", "category": "国内"},
+      {"name": "新华网-时政", "url": "https://plink.anyfeeder.com/xinhuanet/politics", "category": "国内"},
+      {"name": "新华网-时政", "url": "https://rsshub.rssforever.com/xinhuanet/politics", "category": "国内"},
+
+      {"name": "中新网-要闻", "url": "http://www.chinanews.com/rss/importnews.xml", "category": "国内"},
+      {"name": "中新网-要闻", "url": "https://plink.anyfeeder.com/chinanews/importnews", "category": "国内"},
+
+      {"name": "网易新闻", "url": "http://news.163.com/special/00011K6L/rss_newsattitude.xml", "category": "国内"},
+      {"name": "网易新闻", "url": "https://plink.anyfeeder.com/163/today", "category": "国内"},
+
+      {"name": "澎湃新闻", "url": "https://plink.anyfeeder.com/thepaper/featured", "category": "国内"},
       {"name": "澎湃新闻", "url": "https://rsshub.rssforever.com/thepaper/featured", "category": "国内"},
-      {"name": "南方周末", "url": "https://plink.anyfeeder.com/infzm/2", "category": "国内"},
-      {"name": "联合早报", "url": "https://rsshub.rssforever.com/zaobao/realtime/china", "category": "国内"},
 
       {"name": "OpenAI Blog", "url": "https://openai.com/news/rss.xml", "category": "AI领域"},
-      {"name": "DeepMind Blog", "url": "https://deepmind.google/blog/rss.xml", "category": "AI领域"},
-      {"name": "Google AI Blog", "url": "https://blog.research.google/feeds/posts/default?alt=rss", "category": "AI领域"},
+      {"name": "Google DeepMind", "url": "https://deepmind.google/blog/rss.xml", "category": "AI领域"},
       {"name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "category": "AI领域"},
       {"name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "category": "AI领域"}
     ]
@@ -27,7 +32,22 @@
   "ai": {
     "provider": "deepseek",
     "model": "deepseek-chat",
-    "api_key_env": "DEEPSEEK_API_KEY"
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "concurrency": 5,
+    "enrichment": {
+      "enabled": false
+    }
+  },
+  "processing": {
+    "profile_settings": {
+      "tech-news": {
+        "threshold": 7.5,
+        "topic_dedup": true
+      }
+    }
+  },
+  "digest": {
+    "max_items": 20
   },
   "email": {
     "enabled": false,
