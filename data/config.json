@@ -34,9 +34,9 @@
     "smtp_server": "smtp.qq.com",
     "smtp_port": 465,
     "imap_server": "imap.qq.com",
-    "email_address": "你的邮箱@foxmail.com",
+    "email_address": "angusw@foxmail.com",
     "password_env": "EMAIL_PASSWORD",
-    "recipient": "你的邮箱@outlook.com"
+    "recipient": "anguswym@outlook.com"
   },
   "webhook": {
     "enabled": false
