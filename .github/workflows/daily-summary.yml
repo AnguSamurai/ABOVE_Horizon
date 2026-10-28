@@ -1,10 +1,9 @@
 name: Daily Horizon Summary
 
 on:
-  schedule:
-    # 北京时间早上 8:15 运行 (UTC 00:15)，预留时间确保 9:00 前送达
-    - cron: '15 0 * * *'
-  workflow_dispatch:      # Allow manual trigger
+  # schedule:
+  #   - cron: '15 0 * * *'
+  workflow_dispatch:      # 必须保留，用于外部精准触发和手动调试
 
 jobs:
   daily-summary:
