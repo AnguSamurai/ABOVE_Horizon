@@ -32,7 +32,6 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      # 👇 测试期间封印抓取功能，不消耗 Token
       - name: Run Horizon
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -40,6 +39,112 @@ jobs:
 
       - name: Set current date as environment variable
         run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      # 👇 新增：生成带有背景知识的双语网页
+      - name: Generate Bilingual Webpage
+        run: |
+          python -c "
+          import glob, os, json, re, datetime
+          
+          today = datetime.datetime.now().strftime('%Y-%m-%d')
+          with open('data/config.json', 'r', encoding='utf-8') as f:
+              config = json.load(f)
+          source_to_cat = {src['name']: src.get('category', '国际') for src in config['sources']['rss']}
+
+          zh_files = glob.glob('data/summaries/horizon-*-zh.md')
+          en_files = glob.glob('data/summaries/horizon-*-en.md')
+          if not zh_files and not en_files:
+              print('❌ 没找到 md 文件，跳过网页生成')
+              exit(0)
+              
+          content_zh = open(max(zh_files, key=os.path.getctime), 'r', encoding='utf-8').read() if zh_files else ''
+          content_en = open(max(en_files, key=os.path.getctime), 'r', encoding='utf-8').read() if en_files else ''
+
+          def parse_md_for_web(content):
+              items, current = [], None
+              for line in content.split('\n'):
+                  line = line.strip()
+                  if not line: continue
+                  
+                  match = re.search(r'### \[(.*?)\]\((.*?)\)', line)
+                  if match:
+                      if current: items.append(current)
+                      current = {'title': match.group(1), 'url': match.group(2), 'summary': '', 'background': '', 'source': '', 'is_bg': False}
+                      continue
+                      
+                  if line.startswith('rss · ') and current and not current['source']:
+                      parts = line.split('·')
+                      if len(parts) >= 2: current['source'] = parts[1].strip()
+                      continue
+                  
+                  if current and ('**Background' in line or '**背景' in line):
+                      current['is_bg'] = True
+                      continue
+                  if current and (line.startswith('**References') or line.startswith('**参考') or line.startswith('> ')):
+                      current['is_bg'] = False
+                      continue
+                      
+                  if current:
+                      if current['is_bg']:
+                          current['background'] += line + '\n'
+                      elif not current['summary'] and not line.startswith('#') and not line.startswith('**') and not line.startswith('>') and not line.startswith('<'):
+                          current['summary'] = line # 网页端：保留完整正文概括
+              if current: items.append(current)
+              return items
+
+          zh_news = parse_md_for_web(content_zh)
+          en_news = {item['url']: item for item in parse_md_for_web(content_en)}
+          
+          cat_mapping = {'国内': '中国', '国际': '国际', 'AI领域': '重点关注'}
+          categorized_news = {'中国': [], '国际': [], '重点关注': []}
+          
+          for item in (zh_news if zh_news else en_news.values()):
+              cat = '国际'
+              for src_name, src_cat in source_to_cat.items():
+                  if src_name.lower() in item.get('source', '').lower() or item.get('source', '').lower() in src_name.lower():
+                      cat = src_cat; break
+              
+              new_cat = cat_mapping.get(cat, '国际')
+              if len(categorized_news[new_cat]) < 5:
+                  zh_item = item if zh_news else None
+                  en_item = en_news.get(item['url']) if zh_news else item
+                  categorized_news[new_cat].append({'zh': zh_item, 'en': en_item})
+
+          html = f'<div style=\"font-family: -apple-system, sans-serif; max-width: 700px; margin: 0 auto; color: #333; padding: 20px;\">'
+          html += f'<h2 style=\"border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">🌊 Above Daily Digest ({today})</h2>'
+          html += f'<p style=\"color: #666; font-size: 14px;\">Stay informed, stay above water.</p>'
+          
+          for cat in ['中国', '国际', '重点关注']:
+              if categorized_news[cat]:
+                  html += f'<h3 style=\"color: #2ea44f; margin-top: 30px; border-left: 4px solid #2ea44f; padding-left: 10px;\">{cat}</h3>'
+                  for pair in categorized_news[cat]:
+                      zh, en = pair['zh'], pair['en']
+                      html += f'<div style=\"margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px dashed #eee;\">'
+                      
+                      if zh:
+                          html += f'<h4 style=\"margin: 0 0 8px 0; font-size: 16px; color: #111;\">{zh[\"title\"]}</h4>'
+                          html += f'<p style=\"margin: 0; font-size: 14px; line-height: 1.6; color: #444;\">{zh[\"summary\"]}</p>'
+                          if zh['background']:
+                              bg_text = zh['background'].strip().replace('\n', '<br>')
+                              html += f'<div style=\"margin-top: 10px; padding: 12px; background: #f4f9f4; border-radius: 6px; font-size: 13px; color: #555;\"><strong>🧠 背景补充：</strong><br>{bg_text}</div>'
+                      
+                      if en:
+                          html += f'<div style=\"margin-top: {\"16px\" if zh else \"0\"}; padding-left: 12px; border-left: 2px solid #ddd;\">'
+                          html += f'<h4 style=\"margin: 0 0 6px 0; font-size: 15px; color: #666;\">{en[\"title\"]}</h4>'
+                          html += f'<p style=\"margin: 0; font-size: 13px; line-height: 1.5; color: #888;\">{en[\"summary\"]}</p>'
+                          if en['background']:
+                              bg_text_en = en['background'].strip().replace('\n', '<br>')
+                              html += f'<div style=\"margin-top: 8px; padding: 10px; background: #fafafa; border-radius: 4px; font-size: 12px; color: #777;\"><strong>Background:</strong><br>{bg_text_en}</div>'
+                          html += f'</div>'
+                          
+                      html += f'</div>'
+          html += '</div>'
+
+          os.makedirs('docs', exist_ok=True)
+          with open('docs/bilingual.html', 'w', encoding='utf-8') as f:
+              f.write(f'<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Above Daily Digest</title></head><body style=\"background: #f9f9f9; margin: 0; padding: 20px;\"><div style=\"background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);\">{html}</div></body></html>')
+          print('✅ 双语网页生成成功！')
+          "
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -54,6 +159,8 @@ jobs:
       - name: Send Above Briefing
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          # 👇 魔法变量：自动获取当前的仓库全名（例如 angusamurai/ABOVE_Horizon）
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           python -c "
           import smtplib, os, glob, json, re, datetime
@@ -61,112 +168,88 @@ jobs:
           from email.header import Header
 
           today = datetime.datetime.now().strftime('%Y-%m-%d')
-
           with open('data/config.json', 'r', encoding='utf-8') as f:
               config = json.load(f)
-          
-          # 1. 源到板块的映射
           source_to_cat = {src['name']: src.get('category', '国际') for src in config['sources']['rss']}
 
-          # 2. 寻找真实的中英文文件
           zh_files = glob.glob('data/summaries/horizon-*-zh.md')
           en_files = glob.glob('data/summaries/horizon-*-en.md')
           
-          if not zh_files:
-              print('❌ 未找到真实中文简报文件！请确保 Run Horizon 已经跑过。')
-              exit(1)
+          if not zh_files and not en_files:
+              print('❌ 未找到任何简报文件！'); exit(1)
               
-          latest_zh = max(zh_files, key=os.path.getctime)
-          with open(latest_zh, 'r', encoding='utf-8') as f:
-              content_zh = f.read()
+          content_zh = open(max(zh_files, key=os.path.getctime), 'r', encoding='utf-8').read() if zh_files else ''
+          content_en = open(max(en_files, key=os.path.getctime), 'r', encoding='utf-8').read() if en_files else ''
 
-          content_en = ''
-          if en_files:
-              latest_en = max(en_files, key=os.path.getctime)
-              with open(latest_en, 'r', encoding='utf-8') as f:
-                  content_en = f.read()
-
-          # 3. 超强解析器
-          def parse_md(content):
-              items = []
-              current = None
+          def parse_md(content, is_email=True):
+              items, current = [], None
               for line in content.split('\n'):
                   line = line.strip()
-                  # 匹配标题：### [Title](URL)
                   match = re.search(r'### \[(.*?)\]\((.*?)\)', line)
                   if match:
                       if current: items.append(current)
                       current = {'title': match.group(1), 'url': match.group(2), 'summary': '', 'source': ''}
                       continue
-                      
-                  # 匹配媒体源：rss · The Guardian · Oct 26
                   if line.startswith('rss · ') and current and not current['source']:
                       parts = line.split('·')
-                      if len(parts) >= 2:
-                          current['source'] = parts[1].strip()
+                      if len(parts) >= 2: current['source'] = parts[1].strip()
                       continue
-                      
-                  # 提取摘要（跳过 Background 和 References）
                   if current and not current['summary'] and line and not line.startswith('#') and not line.startswith('**') and not line.startswith('>') and not line.startswith('<'):
-                      if len(line) > 20:
-                          current['summary'] = line[:120] + '...'
-                          
+                      if len(line) > 20: 
+                          current['summary'] = (line[:100] + '...') if is_email and len(line) > 100 else line
               if current: items.append(current)
               return items
 
-          zh_news = parse_md(content_zh)
-          en_news = {item['url']: item for item in parse_md(content_en)} if content_en else {}
+          zh_news = parse_md(content_zh, True)
+          en_news = {item['url']: item for item in parse_md(content_en, True)}
 
-          # 4. 按板块分类
-          categorized_news = {'国内': [], '国际': [], 'AI领域': []}
+          cat_mapping = {'国内': '中国', '国际': '国际', 'AI领域': '重点关注'}
+          categorized_news = {'中国': [], '国际': [], '重点关注': []}
           
-          for item in zh_news:
-              # 尝试匹配源，匹配不到默认国际
+          for item in (zh_news if zh_news else en_news.values()):
               cat = '国际'
               for src_name, src_cat in source_to_cat.items():
-                  if src_name.lower() in item['source'].lower() or item['source'].lower() in src_name.lower():
-                      cat = src_cat
-                      break
+                  if src_name.lower() in item.get('source', '').lower() or item.get('source', '').lower() in src_name.lower():
+                      cat = src_cat; break
               
-              if cat not in categorized_news:
-                  categorized_news[cat] = []
-                  
-              # 每个板块最多 3 条
-              if len(categorized_news[cat]) < 3:
-                  # 找对应的英文
-                  en_item = en_news.get(item['url'])
-                  categorized_news[cat].append({'zh': item, 'en': en_item})
+              new_cat = cat_mapping.get(cat, '国际')
+              if len(categorized_news[new_cat]) < 3:
+                  zh_item = item if zh_news else None
+                  en_item = en_news.get(item['url']) if zh_news else item
+                  categorized_news[new_cat].append({'zh': zh_item, 'en': en_item})
 
-          # 5. 拼接双语 HTML 邮件
-          web_link = f'https://angusamurai.github.io/ABOVE_Horizon/'
+          # 🚀 动态生成网址，再也不用担心仓库名写错或忘记替换！
+          repo_full = os.environ.get('GITHUB_REPOSITORY', 'angusamurai/ABOVE_Horizon')
+          owner, repo_name = repo_full.split('/')
+          web_link = f'https://{owner}.github.io/{repo_name}/bilingual.html'
+
+          html = f'<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">'
+          html += f'<h2 style=\"border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">🌊 Above Daily Digest</h2>'
+          html += f'<p style=\"color: #666; font-size: 14px;\">Stay informed, stay above water.</p>'
           
-          html_content = f'<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">'
-          html_content += f'<h2 style=\"border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">🌊 Above Daily Digest</h2>'
-          html_content += f'<p style=\"color: #666; font-size: 14px;\">Stay informed, stay above water.</p>'
-          
-          for cat in ['国内', '国际', 'AI领域']:
-              if categorized_news.get(cat):
-                  html_content += f'<h3 style=\"color: #2ea44f; margin-top: 25px;\">📍 {cat}</h3>'
-                  html_content += '<ul style=\"padding-left: 20px;\">'
+          for cat in ['中国', '国际', '重点关注']:
+              if categorized_news[cat]:
+                  html += f'<h3 style=\"color: #2ea44f; margin-top: 25px; border-left: 4px solid #2ea44f; padding-left: 10px;\">{cat}</h3>'
+                  html += '<ul style=\"padding-left: 20px; list-style-type: none;\">'
                   for pair in categorized_news[cat]:
                       zh, en = pair['zh'], pair['en']
-                      html_content += f'<li style=\"margin-bottom: 20px;\">'
-                      html_content += f'<strong style=\"font-size: 16px;\">{zh[\"title\"]}</strong><br>'
-                      html_content += f'<span style=\"color: #444; font-size: 14px;\">{zh[\"summary\"]}</span>'
-                      
+                      html += f'<li style=\"margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px dashed #eee;\">'
+                      if zh:
+                          html += f'<strong style=\"font-size: 16px; color: #111;\">{zh[\"title\"]}</strong><br>'
+                          html += f'<span style=\"color: #444; font-size: 14px; line-height: 1.5;\">{zh[\"summary\"]}</span>'
                       if en:
-                          html_content += f'<br><br><strong style=\"font-size: 14px; color: #888;\">{en[\"title\"]}</strong><br>'
-                          html_content += f'<span style=\"color: #999; font-size: 13px;\">{en[\"summary\"]}</span>'
-                          
-                      html_content += f'</li>'
-                  html_content += '</ul>'
+                          html += f'<div style=\"margin-top: {\"10px\" if zh else \"0\"}; padding-left: 12px; border-left: 2px solid #ddd;\">'
+                          html += f'<strong style=\"font-size: 14px; color: #666;\">{en[\"title\"]}</strong><br>'
+                          html += f'<span style=\"color: #888; font-size: 13px; line-height: 1.4;\">{en[\"summary\"]}</span>'
+                          html += f'</div>'
+                      html += f'</li>'
+                  html += '</ul>'
           
-          html_content += f'<div style=\"text-align: center; margin: 30px 0;\">'
-          html_content += f'<a href=\"{web_link}\" style=\"background-color: #2ea44f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;\">👉 阅读完整双语网页版</a>'
-          html_content += f'</div></div>'
+          html += f'<div style=\"text-align: center; margin: 30px 0;\">'
+          html += f'<a href=\"{web_link}\" style=\"background-color: #2ea44f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;\">👉 阅读带背景知识的完整网页版</a>'
+          html += f'</div></div>'
 
-          # 6. 发送邮件
-          msg = MIMEText(html_content, 'html', 'utf-8')
+          msg = MIMEText(html, 'html', 'utf-8')
           msg['Subject'] = Header(f'[{today}] Above Daily Digest', 'utf-8')
           msg['From'] = 'angusw@foxmail.com'
           msg['To'] = 'anguswym@outlook.com'
@@ -175,7 +258,7 @@ jobs:
               server = smtplib.SMTP_SSL('smtp.qq.com', 465)
               server.login('angusw@foxmail.com', os.environ['EMAIL_PASSWORD'])
               server.sendmail('angusw@foxmail.com', ['anguswym@outlook.com'], msg.as_string())
-              print('✅ 完美中英双语简报发送成功！')
+              print(f'✅ 简报发送成功！网页链接为: {web_link}')
               server.quit()
           except Exception as e:
               print('❌ 发送失败：', e)
